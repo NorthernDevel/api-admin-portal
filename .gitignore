@@ -1,6 +1,8 @@
 node_modules/
 .DS_Store
 sftp.json
+
+.env
 .env.*
 
 # IDE - VSCode
