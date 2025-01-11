@@ -1,7 +1,53 @@
 const mongoose = require('mongoose')
 const { ObjectId } = mongoose.Types
 const { PrefixSchema } = require('../models/Prefix')
-const { getInstanceDatabase, closeAllConnections } = require('../config/db')
+const { getInstanceDatabase } = require('../config/db')
+const { createPrefixDirectory } = require('../utilities/file-manager')
+
+/**
+ * @desc Create prefix
+ * @route POST /prefix
+ * @access Private
+ */
+const createNewPrefix = async (req, res) => {
+  try {
+    // สร้าง ObjectId ใหม่
+    const objectId = new ObjectId()
+    const dbName = objectId.toString()
+
+    // เชื่อมต่อไปยัง Database ที่กำหนด
+    const connection = await getInstanceDatabase({
+      headers: { siteid: dbName },
+    })
+
+    createPrefixDirectory(dbName)
+
+    // NOTE: Create and store new prefix
+    const PrefixModel = connection.model('Prefix', PrefixSchema)
+    const prefixData = await PrefixModel.create({
+      ...req.body,
+      _id: objectId,
+    })
+
+    if (!prefixData) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid prefix data recived',
+      })
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `New prefix ${prefixData.prefix} created`,
+      data: prefixData,
+    })
+  } catch (e) {
+    return res.status(400).json({
+      success: false,
+      message: e.message,
+    })
+  }
+}
 
 /**
  * @desc Get all prefixs
@@ -33,46 +79,7 @@ const getAllPrefixes = async (req, res) => {
   }
 }
 
-/**
- * @desc Create prefix
- * @route POST /prefix
- * @access Private
- */
-const createNewPrefix = async (req, res) => {
-  try {
-    // สร้าง ObjectId ใหม่
-    const objectId = new ObjectId()
-    const dbName = objectId.toString()
-
-    // เชื่อมต่อไปยัง Database ที่กำหนด
-    const connection = await getInstanceDatabase({
-      headers: { siteid: dbName },
-    })
-
-    // NOTE: Create and store new prefix
-    const PrefixModel = connection.model('Prefix', PrefixSchema)
-    const prefixData = await PrefixModel.create(req.body)
-
-    if (!prefixData) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid prefix data recived',
-      })
-    }
-    res.status(201).json({
-      success: true,
-      message: `New prefix ${prefixData.prefix} created`,
-      data: prefixData,
-    })
-  } catch (e) {
-    return res.status(400).json({
-      success: false,
-      message: e.message,
-    })
-  }
-}
-
 module.exports = {
-  getAllPrefixes,
   createNewPrefix,
+  getAllPrefixes,
 }
