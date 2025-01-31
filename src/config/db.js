@@ -4,7 +4,7 @@ const mongoose = require('mongoose')
 const connections = {}
 
 // NOTE: ปิด mongoose.connections ทุกๆ เที่ยงคืน
-cron.schedule('0 0 * * *', async () => {
+cron.schedule('0 3 * * *', async () => {
   closeAllConnections()
 })
 
@@ -28,7 +28,7 @@ const getInstanceDatabase = async (req) => {
       maxPoolSize: 50, // ใช้ connection pool เพื่อลดการสร้าง connection ใหม่บ่อย ๆ
       minPoolSize: 5,
       serverSelectionTimeoutMS: 5000, // ถ้าเลือก server ไม่ได้ใน 5 วินาที, ให้ timeout
-      socketTimeoutMS: 45000, // ปิด connection ถ้าไม่มีการใช้งานเกิน 45 วินาที
+      socketTimeoutMS: 300000, // ปิด connection ถ้าไม่มีการใช้งานเกิน 5 นาที
     })
     .asPromise()
 
@@ -47,7 +47,6 @@ const getConnectionStatus = async (req) => {
     const mongoURI = `${process.env.DATABASE_URI}/${dbName}?retryWrites=true&w=majority&appName=AdminPortal&authSource=admin`
 
     await mongoose.connect(mongoURI)
-    console.log('MongoDB connected')
 
     // ตรวจสอบว่า db เชื่อมต่อสำเร็จหรือยัง
     if (mongoose.connection.readyState !== 1) {
@@ -74,21 +73,32 @@ const getConnectionStatus = async (req) => {
  * @params req, null
  */
 const closeAllConnections = async () => {
-  try {
-    // วนลูปปิดทุก connection ใน mongoose.connections
-    for (const connection of mongoose.connections) {
-      if (connection.readyState === 1) {
-        // ตรวจสอบว่า connection อยู่ในสถานะ connected
-        await connection.close()
-        console.log(`Closed connection for database: ${connection.name}`)
+  const closePromises = Object.keys(connections).map(async (dbName) => {
+    if (connections[dbName] && connections[dbName].readyState === 1) {
+      try {
+        await connections[dbName].close()
+        console.log(`✅ Closed MongoDB connection for: ${dbName}`)
+      } catch (err) {
+        console.error(`❌ Error closing MongoDB connection for ${dbName}:`, err)
       }
     }
+  })
 
-    console.log('All connections closed successfully.')
-  } catch (err) {
-    console.error('Error closing connections:', err)
-  }
+  await Promise.all(closePromises)
 }
+
+// ปิด connection เมื่อ process ปิดตัว
+process.on('exit', async () => {
+  console.log('🛑 Process exiting... closing MongoDB connections.')
+  await closeAllConnections()
+})
+
+// ปิด connection เมื่อกด Ctrl+C
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT received... closing MongoDB connections.')
+  await closeAllConnections()
+  process.exit(0)
+})
 
 module.exports = {
   getInstanceDatabase,

@@ -1,4 +1,4 @@
-const { getConnectionStatus } = require('../config/db')
+const { getConnectionStatus, closeAllConnections } = require('../config/db')
 
 /**
  * @desc Get status
@@ -11,7 +11,6 @@ const getStatus = async (req, res) => {
     return res.json({
       status: true,
       message: 'Success',
-      data: connectionStatus,
     })
   } catch (error) {
     console.error('Error fetching MongoDB connection status:', error)
@@ -19,6 +18,20 @@ const getStatus = async (req, res) => {
   }
 }
 
+const closeAll = async (req, res) => {
+  try {
+    await closeAllConnections()
+    return res.json({
+      status: true,
+      message: 'Success',
+    })
+  } catch (error) {
+    console.error('Error', error)
+    res.status(500).json({ error: 'Failed to close all MongoDB connections' })
+  }
+}
+
 module.exports = {
   getStatus,
+  closeAll,
 }
