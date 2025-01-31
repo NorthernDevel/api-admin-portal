@@ -11,6 +11,7 @@ const getStatus = async (req, res) => {
     return res.json({
       status: true,
       message: 'Success',
+      data: connectionStatus,
     })
   } catch (error) {
     console.error('Error fetching MongoDB connection status:', error)
