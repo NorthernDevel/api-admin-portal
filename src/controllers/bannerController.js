@@ -39,12 +39,12 @@ const getAllProducts = async (req, res) => {
   const products = await findProduct.lean()
   if (!products?.length) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: 'No products found',
     })
   }
   res.status(200).json({
-    success: true,
+    status: true,
     data: products,
   })
 }
@@ -86,14 +86,14 @@ const createNewProduct = async (req, res) => {
     form.parse(req, async (error, fields, files) => {
       if (error) {
         return res.status(400).json({
-          success: false,
+          status: false,
           message: error,
         })
       }
       const { name, price, amount, description } = fields
       if (!name || !price || !amount) {
         return res.status(400).json({
-          success: false,
+          status: false,
           message: 'All fields are required',
         })
       }
@@ -110,13 +110,13 @@ const createNewProduct = async (req, res) => {
       const product = await Product.create(productObject)
       const result = await uploadImage(files, product._id)
       return res.status(200).json({
-        success: true,
+        status: true,
         data: result,
       })
     })
   } catch (e) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: e,
     })
   }
@@ -130,13 +130,9 @@ const createNewProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   const { _id, name, price, amount, description, image } = req.body
   // NOTE: Confirm Data
-  if (
-    !name ||
-    !price ||
-    !amount 
-  ) {
+  if (!name || !price || !amount) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: 'All fields are required',
     })
   }
@@ -145,7 +141,7 @@ const updateProduct = async (req, res) => {
 
   if (!product) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: 'Product not found',
     })
   }
@@ -159,7 +155,7 @@ const updateProduct = async (req, res) => {
   const updatedProduct = await product.save()
 
   res.status(200).json({
-    success: true,
+    status: true,
     message: `${updatedProduct.username} updated`,
   })
 }
@@ -174,7 +170,7 @@ const deleteProduct = async (req, res) => {
 
   if (!id) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: 'Product ID Required',
     })
   }
@@ -183,7 +179,7 @@ const deleteProduct = async (req, res) => {
 
   if (!product) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: 'Product not found',
     })
   }
@@ -193,7 +189,7 @@ const deleteProduct = async (req, res) => {
   const reply = `Product ${result.name} with ID ${result._id}`
 
   res.status(200).json({
-    success: true,
+    status: true,
     message: reply,
   })
 }

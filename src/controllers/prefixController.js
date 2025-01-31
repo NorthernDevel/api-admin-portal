@@ -1,8 +1,10 @@
 const mongoose = require('mongoose')
 const { ObjectId } = mongoose.Types
-const { PrefixSchema } = require('../models/Prefix')
 const { getInstanceDatabase } = require('../config/db')
-const { createPrefixDirectory } = require('../utilities/file-manager')
+const { createPrefixDirectory } = require('../utils/file-manager')
+const { PrefixSchema } = require('../models/Prefix')
+const { createNewPrefixInAdministrator } = require('../shared/prefix')
+const { createSettings } = require('../shared/setting')
 
 /**
  * @desc Create prefix
@@ -20,8 +22,6 @@ const createNewPrefix = async (req, res) => {
       headers: { siteid: dbName },
     })
 
-    createPrefixDirectory(dbName)
-
     // NOTE: Create and store new prefix
     const PrefixModel = connection.model('Prefix', PrefixSchema)
     const prefixData = await PrefixModel.create({
@@ -29,21 +29,30 @@ const createNewPrefix = async (req, res) => {
       _id: objectId,
     })
 
+    // NOTE: For Administrator.
+    await createNewPrefixInAdministrator(req, objectId)
+
+    // NOTE: New Site Settings.
+    await createSettings(req, objectId)
+
+    // NOTE: Create base directories.
+    await createPrefixDirectory(dbName)
+
     if (!prefixData) {
       res.status(400).json({
-        success: false,
+        status: false,
         message: 'Invalid prefix data recived',
       })
     }
 
     res.status(201).json({
-      success: true,
+      status: true,
       message: `New prefix ${prefixData.prefix} created`,
       data: prefixData,
     })
   } catch (e) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: e.message,
     })
   }
@@ -62,18 +71,54 @@ const getAllPrefixes = async (req, res) => {
 
     if (!prefixesData.length) {
       return res.status(400).json({
-        success: false,
+        status: false,
         message: 'No users found',
         data: [],
       })
     }
     return res.status(200).json({
-      success: true,
+      status: true,
+      message: 'Success',
       data: prefixesData,
     })
   } catch (e) {
     return res.status(400).json({
-      success: false,
+      status: false,
+      message: e.message,
+    })
+  }
+}
+
+/**
+ * @desc Get prefix by id
+ * @route GET /prefix/:id
+ * @access Private
+ */
+const getPrefixById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const connection = await getInstanceDatabase(req)
+    const PrefixModel = connection.model('Prefix', PrefixSchema)
+    const prefixData = await PrefixModel.findById(id)
+      .select('-password')
+      .lean()
+      .exec()
+
+    if (!prefixData) {
+      return res.status(400).json({
+        status: false,
+        message: 'No prefix found.',
+      })
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'Success',
+      data: prefixData,
+    })
+  } catch (e) {
+    return res.status(400).json({
+      status: false,
       message: e.message,
     })
   }
@@ -82,4 +127,5 @@ const getAllPrefixes = async (req, res) => {
 module.exports = {
   createNewPrefix,
   getAllPrefixes,
+  getPrefixById,
 }

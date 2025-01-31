@@ -1,7 +1,9 @@
+const redis = require('../config/radisClient')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const { UserSchema } = require('../models/User')
 const { getInstanceDatabase } = require('../config/db')
+const { updateLastLogin } = require('../shared/user')
 
 /**
  * @desc Login
@@ -11,18 +13,38 @@ const { getInstanceDatabase } = require('../config/db')
 const login = async (req, res) => {
   try {
     const { username, password } = req.body
-    const connection = await getInstanceDatabase()
-    const UserModel = connection.model('User', UserSchema)
-    const foundUser = await UserModel.findOne({ username }).exec()
+    let foundUser = {}
+
+    const cachedUser = await redis.get(`user:${username}`)
+    if (cachedUser) {
+      foundUser = JSON.parse(cachedUser)
+    } else {
+      const connection = await getInstanceDatabase()
+      const UserModel = connection.model('User', UserSchema)
+      foundUser = await UserModel.findOne({ username }).exec()
+      await redis.set(
+        `user:${username}`,
+        JSON.stringify(foundUser),
+        'EX',
+        60 * 60 * 24 * 30 * 3
+      ) // Cache 3 เดือน.
+    }
 
     if (!foundUser || !foundUser.isActive) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' })
+      return res
+        .status(200)
+        .json({ status: false, message: 'Username or password invalid' })
     }
 
     const match = await bcrypt.compare(password, foundUser.password)
 
     if (!match)
-      return res.status(401).json({ success: false, message: 'Unauthorized' })
+      return res
+        .status(200)
+        .json({ status: false, message: 'Username or password invalid' })
+
+    // NOTE: Update last login.
+    await updateLastLogin(foundUser._id)
 
     const userData = {
       username: foundUser.username,
@@ -40,28 +62,38 @@ const login = async (req, res) => {
         userInfo: userData,
       },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: '30m' }
+      { expiresIn: '15m' }
     )
 
     const refreshToken = jwt.sign(
       { username: foundUser.username },
       process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: '1d' }
+      { expiresIn: '4h' }
     )
 
     // Create secure cookie with refresh token
     res.cookie('jwt', refreshToken, {
-      httpOnly: true, //accessible only by web server
+      httpOnly: false, //accessible only by web server
       secure: true, //https
-      sameSite: 'None', //cross-site cookie
-      maxAge: 24 * 60 * 60 * 1000, //cookie expiry: set to match rT
+      sameSite: 'strict', //cross-site cookie
+      maxAge: 4 * 60 * 60 * 1000, // 4 hours in milliseconds
+    })
+
+    res.cookie('auth_token', accessToken, {
+      httpOnly: false, //accessible only by web server
+      secure: true, //https
+      sameSite: 'strict', //cross-site cookie
+      maxAge: 15 * 60 * 1000, // 15 minutes in milliseconds
     })
 
     // Send accessToken containing username and roles
-    res.json({ success: true, accessToken, user: foundUser })
+    res.json({
+      status: true,
+      message: 'Success',
+    })
   } catch (e) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: e.message,
     })
   }
@@ -73,64 +105,97 @@ const login = async (req, res) => {
  * @access Public - because access token has expired
  */
 const refresh = (req, res) => {
-  const cookies = req.cookies
+  try {
+    const cookies = req.cookies
 
-  if (!cookies?.jwt)
-    return res.status(401).json({ success: false, message: 'Unauthorized' })
+    if (!cookies?.jwt)
+      return res.status(401).json({ status: false, message: 'Unauthorized' })
 
-  const refreshToken = cookies.jwt
+    const refreshToken = cookies.jwt
 
-  jwt.verify(
-    refreshToken,
-    process.env.REFRESH_TOKEN_SECRET,
-    async (err, decoded) => {
-      if (err)
-        return res.status(403).json({ success: false, message: 'Forbidden' })
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (err, decoded) => {
+        if (err)
+          return res.status(403).json({ status: false, message: 'Forbidden' })
 
-      const connection = await getInstanceDatabase()
-      const UserModel = connection.model('User', UserSchema)
-      const foundUser = await UserModel.findOne({
-        username: decoded.username,
-      })
-        .select('-password')
-        .lean()
-        .exec()
+        const connection = await getInstanceDatabase()
+        const UserModel = connection.model('User', UserSchema)
+        const foundUser = await UserModel.findOne({
+          username: decoded.username,
+        })
+          .select('-password')
+          .lean()
+          .exec()
 
-      if (!foundUser)
-        return res.status(401).json({ success: false, message: 'Unauthorized' })
+        if (!foundUser)
+          return res
+            .status(401)
+            .json({ status: false, message: 'Unauthorized' })
 
-      const accessToken = jwt.sign(
-        {
-          userInfo: {
-            username: foundUser.username,
-            name: foundUser.name,
-            role: foundUser.role,
-            siteIds: foundUser.siteIds,
-            isActive: foundUser.isActive,
-            isVerified: foundUser.isVerified,
-            createdAt: foundUser.createdAt,
-            updatedAt: foundUser.updatedAt,
+        const userData = {
+          username: foundUser.username,
+          name: foundUser.name,
+          role: foundUser.role,
+          siteIds: foundUser.siteIds,
+          isActive: foundUser.isActive,
+          isVerified: foundUser.isVerified,
+          createdAt: foundUser.createdAt,
+          updatedAt: foundUser.updatedAt,
+        }
+
+        const accessToken = jwt.sign(
+          {
+            userInfo: userData,
           },
-        },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '15m' }
-      )
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: '15m' }
+        )
 
-      res.json({ success: true, accessToken, user: foundUser })
-    }
-  )
+        res.cookie('auth_token', accessToken, {
+          httpOnly: false, //accessible only by web server
+          secure: true, //https
+          sameSite: 'strict', //cross-site cookie
+          maxAge: 15 * 60 * 1000, // 15 minutes in milliseconds
+        })
+
+        res.json({
+          status: true,
+          message: 'Success',
+          siteId: foundUser.siteIds[0],
+        })
+      }
+    )
+  } catch (e) {
+    return res.status(400).json({
+      status: false,
+      message: e.message,
+    })
+  }
 }
 
 /**
  * @desc Logout
- * @route POST /auth/logout
+ * @route GET /auth/logout
  * @access Public - just to clear cookie if exists
  */
 const logout = (req, res) => {
-  // const cookies = req.cookies
-  // if (!cookies?.jwt) return res.sendStatus(204) //No content
-  // res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', secure: true })
-  res.json({ success: true, message: 'Cookie cleared' })
+  try {
+    const cookies = req.cookies
+    if (!cookies?.jwt) return res.sendStatus(204) //No content
+    res.clearCookie('jwt', {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'strict',
+    })
+    res.json({ status: true, message: 'Cookie cleared' })
+  } catch (e) {
+    return res.status(400).json({
+      status: false,
+      message: e.message,
+    })
+  }
 }
 
 module.exports = {

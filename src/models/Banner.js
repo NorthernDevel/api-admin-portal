@@ -8,7 +8,7 @@ const BannerSchema = new Schema(
       type: String,
     },
     seq: { type: Number, require: true },
-    createdAt: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now() },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   option

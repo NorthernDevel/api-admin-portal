@@ -10,7 +10,7 @@ router
 
 router
   .route('/:id')
-  .get(verifyJWT, userController.getUserById)
+  .get(userController.getUserById)
   .patch(verifyJWT, userController.updateUser)
   .delete(verifyJWT, userController.deleteUser)
 

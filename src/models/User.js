@@ -10,12 +10,23 @@ const UserSchema = new Schema(
     name: { type: String },
     role: { type: String, enum: ['USER', 'ADMIN', 'MANAGER'], default: 'USER' },
     siteIds: { type: Array, default: [] },
-    profilePicture: { type: String },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now() },
+    createdBy: {
+      type: {
+        _id: { type: Schema.Types.ObjectId },
+        username: { type: String },
+        name: { type: String },
+        role: {
+          type: String,
+          enum: ['USER', 'ADMIN', 'MANAGER'],
+        },
+      },
+      required: true,
+    },
+    updatedAt: { type: Date, default: Date.now() },
     isActive: { type: Boolean, default: true },
     isVerified: { type: Boolean, default: true },
-    lastLogin: { type: Date },
+    lastLogin: { type: Date, default: Date.now() },
   },
   option
 )

@@ -10,8 +10,19 @@ const PrefixSchema = new Schema(
       required: true,
       unique: true,
     },
-    createdAt: { type: Date, default: Date.now },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    createdAt: { type: Date, default: Date.now() },
+    createdBy: {
+      type: {
+        _id: { type: Schema.Types.ObjectId },
+        username: { type: String },
+        name: { type: String },
+        role: {
+          type: String,
+          enum: ['USER', 'ADMIN', 'MANAGER'],
+        },
+      },
+      required: true,
+    },
     isActive: { type: Boolean, default: true },
   },
   option

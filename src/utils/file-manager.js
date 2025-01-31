@@ -9,7 +9,6 @@ const fs = require('fs-extra')
 // Upload Image
 const uploadImage = async (files, siteId, directory, id) => {
   if (files.image != null) {
-    const { headers, body } = req
     const pathName = `public/images/${siteId}/${directory}`
 
     const objectId = new ObjectId()
@@ -23,22 +22,31 @@ const uploadImage = async (files, siteId, directory, id) => {
     }
     await fs.moveSync(files.image.filepath, newpath)
 
-    // NOTE: Update product image
-    return id
+    // NOTE: Update product image.
+    return { id, imageName }
   }
 }
 
 const createPrefixDirectory = (prefixDirectory) => {
   const pathName = `${rootDirectory}/public/images/${prefixDirectory}`
   if (!fs.existsSync(pathName)) {
-    // NOTE: Main Dir
+    // NOTE: Main dir.
     fs.mkdirSync(pathName)
-    // NOTE: Sub Dir
-    fs.mkdirSync(`${pathName}/app-logo`)
-    fs.mkdirSync(`${pathName}/app-icons`)
-    fs.mkdirSync(`${pathName}/banners`)
-    fs.mkdirSync(`${pathName}/icons`)
-    fs.mkdirSync(`${pathName}/promotions`)
+    // NOTE: app-icons dir.
+    if (!fs.existsSync(`${pathName}/app-icons`))
+      fs.mkdirSync(`${pathName}/app-icons`)
+    // NOTE: banners dir.
+    if (!fs.existsSync(`${pathName}/banners`))
+      fs.mkdirSync(`${pathName}/banners`)
+    // NOTE: icons dir.
+    if (!fs.existsSync(`${pathName}/icons`)) fs.mkdirSync(`${pathName}/icons`)
+    // NOTE: logos dir.
+    if (!fs.existsSync(`${pathName}/logos`)) fs.mkdirSync(`${pathName}/logos`)
+    // NOTE: popups dir.
+    if (!fs.existsSync(`${pathName}/popups`)) fs.mkdirSync(`${pathName}/popups`)
+    // NOTE: promotions dir.
+    if (!fs.existsSync(`${pathName}/promotions`))
+      fs.mkdirSync(`${pathName}/promotions`)
   }
 }
 

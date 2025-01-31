@@ -1,69 +1,8 @@
+const redis = require('../config/radisClient')
 const bcrypt = require('bcrypt')
 const { User, UserSchema } = require('../models/User')
 const { getInstanceDatabase } = require('../config/db')
-
-/**
- * @desc Get all users
- * @route GET /user
- * @access Private
- */
-const getAllUsers = async (req, res) => {
-  try {
-    const connection = await getInstanceDatabase()
-    const UserModel = connection.model('User', UserSchema)
-    const findUser = UserModel.find()
-    const usersData = await findUser.select('-password').lean()
-    if (!usersData.length) {
-      return res.status(400).json({
-        success: false,
-        message: 'No users found.',
-        data: [],
-      })
-    }
-    return res.status(200).json({
-      success: true,
-      data: usersData,
-    })
-  } catch (e) {
-    return res.status(400).json({
-      success: false,
-      message: e.message,
-    })
-  }
-}
-
-/**
- * @desc Get user by id
- * @route GET /user/:id
- * @access Private
- */
-const getUserById = async (req, res) => {
-  try {
-    const { id } = req.params
-    const connection = await getInstanceDatabase()
-    const UserModel = connection.model('User', UserSchema)
-    const userData = await UserModel.findById(id)
-      .select('-password')
-      .lean()
-      .exec()
-
-    if (!userData) {
-      return res.status(400).json({
-        success: false,
-        message: 'No user found.',
-      })
-    }
-    return res.status(200).json({
-      success: true,
-      data: userData,
-    })
-  } catch (e) {
-    return res.status(400).json({
-      success: false,
-      message: e.message,
-    })
-  }
-}
+const { userById } = require('../shared/user')
 
 /**
  * @desc Create users
@@ -79,19 +18,80 @@ const createNewUser = async (req, res) => {
 
     if (userData) {
       res.status(201).json({
-        success: true,
+        status: true,
         message: `New user ${userData.username} created.`,
         data: userData,
       })
     } else {
       res.status(400).json({
-        success: false,
+        status: false,
         message: 'Invalid user data recived.',
       })
     }
   } catch (e) {
     return res.status(400).json({
-      success: false,
+      status: false,
+      message: e.message,
+    })
+  }
+}
+
+/**
+ * @desc Get all users
+ * @route GET /user
+ * @access Private
+ */
+const getAllUsers = async (req, res) => {
+  try {
+    const connection = await getInstanceDatabase()
+    const UserModel = connection.model('User', UserSchema)
+    const findUser = UserModel.find()
+    const usersData = await findUser.select('-password').lean()
+
+    if (!usersData.length) {
+      return res.status(400).json({
+        status: false,
+        message: 'No users found.',
+        data: [],
+      })
+    }
+    return res.status(200).json({
+      status: true,
+      message: 'Success',
+      data: usersData,
+    })
+  } catch (e) {
+    return res.status(400).json({
+      status: false,
+      message: e.message,
+    })
+  }
+}
+
+/**
+ * @desc Get user by id
+ * @route GET /user/:id
+ * @access Private
+ */
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const userData = await userById(id)
+
+    if (!userData) {
+      return res.status(400).json({
+        status: false,
+        message: 'No user found.',
+      })
+    }
+    return res.status(200).json({
+      status: true,
+      message: 'Success',
+      data: userData,
+    })
+  } catch (e) {
+    return res.status(400).json({
+      status: false,
       message: e.message,
     })
   }
@@ -118,18 +118,23 @@ const updateUser = async (req, res) => {
 
     if (!userData) {
       res.status(400).json({
-        success: false,
+        status: false,
         message: 'User not found.',
       })
     }
 
+    // NOTE: Clear cacheUser by id & username.
+    redis.del(`user:${id}`)
+    redis.del(`user:${username}`)
+
     res.status(200).json({
-      success: true,
+      status: true,
       message: `${userData.username} updated`,
+      data: userData,
     })
   } catch (e) {
     res.status(400).json({
-      success: false,
+      status: false,
       message: e.message,
     })
   }
@@ -151,7 +156,7 @@ const changeUserPassword = async (req, res) => {
 
     if (!foundUser || !foundUser.isActive) {
       return res.status(400).json({
-        success: false,
+        status: false,
         message: 'User not found.',
       })
     }
@@ -161,7 +166,7 @@ const changeUserPassword = async (req, res) => {
     if (!match)
       return res
         .status(401)
-        .json({ success: false, message: 'Current password is not match.' })
+        .json({ status: false, message: 'Current password is not match.' })
 
     if (password) {
       foundUser.password = bcrypt.hashSync(password, 10)
@@ -171,18 +176,22 @@ const changeUserPassword = async (req, res) => {
 
     if (!userData) {
       res.status(400).json({
-        success: false,
+        status: false,
         message: 'Change password failure.',
       })
     }
 
+    // NOTE: Clear cacheUser by id & username.
+    redis.del(`user:${id}`)
+    redis.del(`user:${userData.username}`)
+
     res.status(200).json({
-      success: true,
+      status: true,
       message: `${userData.username} password updated.`,
     })
   } catch (e) {
     res.status(400).json({
-      success: false,
+      status: false,
       message: e.message,
     })
   }
@@ -198,7 +207,7 @@ const deleteUser = async (req, res) => {
 
   if (!id) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: 'User ID Required',
     })
   }
@@ -207,7 +216,7 @@ const deleteUser = async (req, res) => {
 
   if (!user) {
     return res.status(400).json({
-      success: false,
+      status: false,
       message: 'User not found',
     })
   }
@@ -217,7 +226,7 @@ const deleteUser = async (req, res) => {
   const reply = `Username ${result.username} with ID ${result._id}`
 
   res.status(200).json({
-    success: true,
+    status: true,
     message: reply,
   })
 }

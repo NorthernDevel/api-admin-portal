@@ -8,4 +8,6 @@ router
   .get(verifyJWT, prefixController.getAllPrefixes)
   .post(verifyJWT, prefixController.createNewPrefix)
 
+router.route('/:id').get(verifyJWT, prefixController.getPrefixById)
+
 module.exports = router
