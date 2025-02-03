@@ -5,15 +5,19 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import corsOptions from './src/config/corsOptions.js'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
 dotenv.config()
 
 const app = express()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 app.use(cors(corsOptions))
 app.use(express.json({ limit: '50mb' }))
 app.use(cookieParser())
-app.use('/', express.static(path.join(import.meta.url, 'public')))
+
+app.use('/', express.static(path.join(__dirname, 'public')))
 
 import connectionRoutes from './src/routes/connectionRoutes.js'
 import authRoutes from './src/routes/authRoutes.js'
