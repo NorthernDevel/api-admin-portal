@@ -1,11 +1,15 @@
-const redis = require('../config/radisClient')
-const { UserSchema } = require('../models/User')
-const { getInstanceDatabase } = require('../config/db')
+import redis from '../config/radisClient.js'
+import { UserSchema } from '../models/User.js'
+import { getInstanceDatabase } from '../config/db.js'
 
 const userById = async (id) => {
   const cachedUser = await redis.get(`user:${id}`)
   if (cachedUser) {
-    return JSON.parse(cachedUser)
+    return res.json({
+      status: true,
+      message: 'Success',
+      data: JSON.parse(cachedUser),
+    })
   }
 
   const connection = await getInstanceDatabase()
@@ -36,7 +40,4 @@ const updateLastLogin = async (id) => {
   return userData
 }
 
-module.exports = {
-  userById,
-  updateLastLogin,
-}
+export { userById, updateLastLogin }

@@ -1,7 +1,8 @@
-const express = require('express')
+import express from 'express'
+import portalController from '../controllers/portalController.js'
+
 const router = express.Router()
-const portalController = require('../controllers/portalController')
 
 router.route('/setting').get(portalController.getSettings)
 
-module.exports = router
+export default router

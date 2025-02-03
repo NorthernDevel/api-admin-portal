@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "This is Admin portal API.",
   "main": "app.js",
+  "type": "module",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js"
@@ -22,6 +23,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.3",
     "node-cron": "^3.0.3",
+    "path": "^0.12.7",
+    "uuid": "^11.0.5",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
   }

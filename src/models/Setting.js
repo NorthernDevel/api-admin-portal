@@ -1,7 +1,8 @@
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema
+import mongoose from 'mongoose'
+import { subSchema } from '../utils/helper.js'
+
+const { Schema } = mongoose
 const option = { versionKey: false }
-const { subSchema } = require('../utils/helper')
 
 const SettingSchema = new Schema(
   {
@@ -83,14 +84,16 @@ const SettingSchema = new Schema(
     banners: subSchema(
       {
         image: { type: String },
-        isActive: { type: Boolean, default: true },
+        seq: { type: Number },
+        createdAt: { type: Date, default: Date.now },
       },
       true
     ),
     promotions: subSchema(
       {
         image: { type: String },
-        isActive: { type: Boolean, default: true },
+        seq: { type: Number },
+        createdAt: { type: Date, default: Date.now },
       },
       true
     ),
@@ -122,4 +125,4 @@ const SettingSchema = new Schema(
 
 const Setting = mongoose.model('Setting', SettingSchema)
 
-module.exports = { Setting, SettingSchema }
+export { Setting, SettingSchema }

@@ -1,8 +1,8 @@
-const redis = require('../config/radisClient')
-const bcrypt = require('bcrypt')
-const { User, UserSchema } = require('../models/User')
-const { getInstanceDatabase } = require('../config/db')
-const { userById } = require('../shared/user')
+import redis from '../config/radisClient.js'
+import bcrypt from 'bcrypt'
+import { UserSchema } from '../models/User.js'
+import { getInstanceDatabase } from '../config/db.js'
+import { userById } from '../shared/user.js'
 
 /**
  * @desc Create users
@@ -29,7 +29,7 @@ const createNewUser = async (req, res) => {
       })
     }
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -61,7 +61,7 @@ const getAllUsers = async (req, res) => {
       data: usersData,
     })
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -90,7 +90,7 @@ const getUserById = async (req, res) => {
       data: userData,
     })
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -133,7 +133,7 @@ const updateUser = async (req, res) => {
       data: userData,
     })
   } catch (e) {
-    res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -190,7 +190,7 @@ const changeUserPassword = async (req, res) => {
       message: `${userData.username} password updated.`,
     })
   } catch (e) {
-    res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -203,35 +203,10 @@ const changeUserPassword = async (req, res) => {
  * @access Private
  */
 const deleteUser = async (req, res) => {
-  const { id } = req.body
-
-  if (!id) {
-    return res.status(400).json({
-      status: false,
-      message: 'User ID Required',
-    })
-  }
-
-  const user = await User.findById(id).exec()
-
-  if (!user) {
-    return res.status(400).json({
-      status: false,
-      message: 'User not found',
-    })
-  }
-
-  const result = await user.deleteOne()
-
-  const reply = `Username ${result.username} with ID ${result._id}`
-
-  res.status(200).json({
-    status: true,
-    message: reply,
-  })
+ 
 }
 
-module.exports = {
+export default {
   getAllUsers,
   getUserById,
   createNewUser,

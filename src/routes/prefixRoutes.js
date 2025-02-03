@@ -1,13 +1,14 @@
-const express = require('express')
+import express from 'express'
+import prefixController from '../controllers/prefixController.js'
+import verifyJWT from '../middleware/verifyJWT.js'
+
 const router = express.Router()
-const prefixController = require('../controllers/prefixController')
-const verifyJWT = require('../middleware/verifyJWT')
 
 router
   .route('/')
   .get(verifyJWT, prefixController.getAllPrefixes)
-  .post(verifyJWT, prefixController.createNewPrefix)
+  .post(prefixController.createNewPrefix)
 
 router.route('/:id').get(verifyJWT, prefixController.getPrefixById)
 
-module.exports = router
+export default router

@@ -1,10 +1,11 @@
-const mongoose = require('mongoose')
+import mongoose from 'mongoose'
+import { getInstanceDatabase } from '../config/db.js'
+import { createPrefixDirectory } from '../utils/file-manager.js'
+import { PrefixSchema } from '../models/Prefix.js'
+import { createNewPrefixInAdministrator } from '../shared/prefix.js'
+import { createSettings } from '../shared/setting.js'
+
 const { ObjectId } = mongoose.Types
-const { getInstanceDatabase } = require('../config/db')
-const { createPrefixDirectory } = require('../utils/file-manager')
-const { PrefixSchema } = require('../models/Prefix')
-const { createNewPrefixInAdministrator } = require('../shared/prefix')
-const { createSettings } = require('../shared/setting')
 
 /**
  * @desc Create prefix
@@ -51,7 +52,7 @@ const createNewPrefix = async (req, res) => {
       data: prefixData,
     })
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -82,7 +83,7 @@ const getAllPrefixes = async (req, res) => {
       data: prefixesData,
     })
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -117,14 +118,14 @@ const getPrefixById = async (req, res) => {
       data: prefixData,
     })
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
   }
 }
 
-module.exports = {
+export default {
   createNewPrefix,
   getAllPrefixes,
   getPrefixById,

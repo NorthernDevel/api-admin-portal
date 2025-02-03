@@ -1,9 +1,9 @@
-const redis = require('../config/radisClient')
-const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
-const { UserSchema } = require('../models/User')
-const { getInstanceDatabase } = require('../config/db')
-const { updateLastLogin } = require('../shared/user')
+import redis from '../config/radisClient.js'
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import { UserSchema } from '../models/User.js'
+import { getInstanceDatabase } from '../config/db.js'
+import { updateLastLogin } from '../shared/user.js'
 
 /**
  * @desc Login
@@ -92,7 +92,7 @@ const login = async (req, res) => {
       message: 'Success',
     })
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -168,7 +168,7 @@ const refresh = (req, res) => {
       }
     )
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
@@ -191,15 +191,11 @@ const logout = (req, res) => {
     })
     res.json({ status: true, message: 'Cookie cleared' })
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
       message: e.message,
     })
   }
 }
 
-module.exports = {
-  login,
-  refresh,
-  logout,
-}
+export default { login, refresh, logout }

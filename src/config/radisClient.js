@@ -1,4 +1,4 @@
-const Redis = require('ioredis')
+import Redis from 'ioredis'
 
 // สร้างการเชื่อมต่อ Redis
 const redis = new Redis({
@@ -15,5 +15,4 @@ redis.on('error', (err) => {
   console.error('Redis error:', err)
 })
 
-// Export redis client ให้สามารถใช้งานในที่อื่นได้
-module.exports = redis
+export default redis

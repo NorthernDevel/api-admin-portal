@@ -1,7 +1,7 @@
-const redis = require('../config/radisClient')
-const { getInstanceDatabase } = require('../config/db')
-const { SettingSchema } = require('../models/Setting')
-const { pipnelineJoinPrefix, createSettings } = require('../shared/setting')
+import redis from '../config/radisClient.js'
+import { getInstanceDatabase } from '../config/db.js'
+import { SettingSchema } from '../models/Setting.js'
+import { pipnelineJoinPrefix } from '../shared/setting.js'
 
 /**
  * @desc Get setting
@@ -13,7 +13,11 @@ const getSettings = async (req, res) => {
     const dbName = req.headers.siteid
     const cachedSetting = await redis.get(`setting:${dbName}`)
     if (cachedSetting) {
-      return JSON.parse(cachedSetting)
+      return res.json({
+        status: true,
+        message: 'Success',
+        data: JSON.parse(cachedSetting),
+      })
     }
 
     const connection = await getInstanceDatabase(req)
@@ -48,13 +52,13 @@ const getSettings = async (req, res) => {
       data: settingData,
     })
   } catch (e) {
-    return res.status(400).json({
+    return res.status(500).json({
       status: false,
-      message: e,
+      message: e.message,
     })
   }
 }
 
-module.exports = {
+export default {
   getSettings,
 }

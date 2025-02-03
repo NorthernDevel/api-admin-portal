@@ -1,6 +1,6 @@
-const { getInstanceDatabase } = require('../config/db')
-const { SettingSchema } = require('../models/Setting')
-const { settingDefaultData } = require('../data/setting')
+import { getInstanceDatabase } from '../config/db.js'
+import { SettingSchema } from '../models/Setting.js'
+import { settingDefaultData } from '../data/setting.js'
 
 const createSettings = async (req, objectId) => {
   const dbName = objectId.toString()
@@ -38,4 +38,4 @@ const pipnelineJoinPrefix = [
   },
 ]
 
-module.exports = { pipnelineJoinPrefix, createSettings }
+export { pipnelineJoinPrefix, createSettings }

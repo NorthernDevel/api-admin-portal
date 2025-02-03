@@ -1,4 +1,4 @@
-const whitelist = require('./allowedOrigins')
+import whitelist from './allowedOrigins.js'
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -11,4 +11,4 @@ const corsOptions = {
   credentials: true,
 }
 
-module.exports = corsOptions
+export default corsOptions

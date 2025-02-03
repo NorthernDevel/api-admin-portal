@@ -1,7 +1,8 @@
-const express = require('express')
+import express from 'express'
+import userController from '../controllers/userController.js'
+import verifyJWT from '../middleware/verifyJWT.js'
+
 const router = express.Router()
-const userController = require('../controllers/userController')
-const verifyJWT = require('../middleware/verifyJWT')
 
 router
   .route('/')
@@ -18,4 +19,4 @@ router
   .route('/change-password/:id')
   .patch(verifyJWT, userController.changeUserPassword)
 
-module.exports = router
+export default router

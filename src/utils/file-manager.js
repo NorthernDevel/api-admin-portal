@@ -1,34 +1,39 @@
-const mongoose = require('mongoose')
-const { ObjectId } = mongoose.Types
-const path = require('path')
-const { dirname } = require('path')
-// ROOT PATH
-const rootDirectory = dirname(require.main.filename)
-const fs = require('fs-extra')
+import fs from 'fs-extra'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { v4 as uuidv4 } from 'uuid'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const uploadDir = path.join(__dirname, '../../public', 'images')
 
 // Upload Image
-const uploadImage = async (files, siteId, directory, id) => {
-  if (files.image != null) {
-    const pathName = `public/images/${siteId}/${directory}`
+const uploadImage = async (file, siteId, directory) => {
+  const pathName = `${siteId}/${directory}`
+  const fileExtention = path.extname(file.originalFilename)
+  const newImageName = `${uuidv4()}${fileExtention}`
+  const newPath = path.resolve(uploadDir, pathName, newImageName)
 
-    const objectId = new ObjectId()
-    const imageName = objectId.toString()
+  if (await fs.exists(newPath)) {
+    await fs.remove(newPath)
+  }
 
-    const fileExtention = files.image.originalFilename.split('.')[1]
-    const newImageName = `${imageName}.${fileExtention}`
-    const newpath = path.resolve(rootDirectory, pathName, newImageName)
-    if (await fs.exists(newpath)) {
-      await fs.remove(newpath)
-    }
-    await fs.moveSync(files.image.filepath, newpath)
+  await fs.moveSync(file.filepath, newPath)
 
-    // NOTE: Update product image.
-    return { id, imageName }
+  return { newImageName }
+}
+
+const deleteImage = async (imageName, siteId, directory) => {
+  const pathName = `${siteId}/${directory}`
+  const deletePath = path.resolve(uploadDir, pathName, imageName)
+
+  if (await fs.pathExists(deletePath)) {
+    await fs.remove(deletePath)
   }
 }
 
 const createPrefixDirectory = (prefixDirectory) => {
-  const pathName = `${rootDirectory}/public/images/${prefixDirectory}`
+  const pathName = `${uploadDir}/${prefixDirectory}`
   if (!fs.existsSync(pathName)) {
     // NOTE: Main dir.
     fs.mkdirSync(pathName)
@@ -50,7 +55,4 @@ const createPrefixDirectory = (prefixDirectory) => {
   }
 }
 
-module.exports = {
-  uploadImage,
-  createPrefixDirectory,
-}
+export { uploadImage, deleteImage, createPrefixDirectory }

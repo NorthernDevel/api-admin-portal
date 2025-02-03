@@ -1,5 +1,6 @@
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema
+import mongoose from 'mongoose'
+
+const { Schema } = mongoose
 const option = { versionKey: false }
 
 const PrefixSchema = new Schema(
@@ -30,4 +31,4 @@ const PrefixSchema = new Schema(
 
 const Prefix = mongoose.model('Prefix', PrefixSchema)
 
-module.exports = { Prefix, PrefixSchema }
+export { Prefix, PrefixSchema }

@@ -1,5 +1,5 @@
-const { getInstanceDatabase } = require('../config/db')
-const { PrefixSchema } = require('../models/Prefix')
+import { getInstanceDatabase } from '../config/db.js'
+import { PrefixSchema } from '../models/Prefix.js'
 
 const createNewPrefixInAdministrator = async (req, objectId) => {
   const connection = await getInstanceDatabase()
@@ -12,4 +12,4 @@ const createNewPrefixInAdministrator = async (req, objectId) => {
   })
 }
 
-module.exports = { createNewPrefixInAdministrator }
+export { createNewPrefixInAdministrator }

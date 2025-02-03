@@ -1,5 +1,5 @@
-const cron = require('node-cron')
-const mongoose = require('mongoose')
+import cron from 'node-cron'
+import mongoose from 'mongoose'
 
 const connections = {}
 
@@ -100,8 +100,4 @@ process.on('SIGINT', async () => {
   process.exit(0)
 })
 
-module.exports = {
-  getInstanceDatabase,
-  closeAllConnections,
-  getConnectionStatus,
-}
+export { getInstanceDatabase, closeAllConnections, getConnectionStatus }

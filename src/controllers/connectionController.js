@@ -1,4 +1,4 @@
-const { getConnectionStatus, closeAllConnections } = require('../config/db')
+import { getConnectionStatus, closeAllConnections } from '../config/db.js'
 
 /**
  * @desc Get status
@@ -32,7 +32,7 @@ const closeAll = async (req, res) => {
   }
 }
 
-module.exports = {
+export default {
   getStatus,
   closeAll,
 }

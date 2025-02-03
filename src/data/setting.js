@@ -38,4 +38,4 @@ const settingDefaultData = (req, objectId) => {
   }
 }
 
-module.exports = { settingDefaultData }
+export { settingDefaultData }

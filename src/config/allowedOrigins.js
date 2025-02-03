@@ -8,4 +8,4 @@ const whitelist = [
   process.env.ALLOWED_URL6,
 ]
 
-module.exports = whitelist
+export default whitelist
