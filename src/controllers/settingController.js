@@ -174,15 +174,11 @@ const updateRegisterType = async (req, res) => {
   }
 }
 
-const updateBanners = async (req, res) => {
+const addBanner = async (req, res) => {
   try {
     const { id } = req.params
     const dbName = req.headers.siteid
     const { fields, files } = await getFormData(req)
-
-    const banners = JSON.parse(fields.banners[0]) // 🔹 banners ที่ส่งมาจาก frontend
-    const uploadedFiles = files.images || [] // 🔹 รูปที่อัปโหลดมาใหม่
-    let newImages = []
     // 📌 ดึง `banners` เดิมจาก DB
     const connection = await getInstanceDatabase(req)
     const SettingModel = connection.model('Setting', SettingSchema)
@@ -196,8 +192,20 @@ const updateBanners = async (req, res) => {
 
     const oldBanners = settingFound[0].banners || []
 
+    // 📌 จำกัด banners เว็บละ 10 รูป
+    if (oldBanners.length >= 10) {
+      return res.status(400).json({
+        status: false,
+        message: 'You can only have 12 banners',
+      })
+    }
+
+    const uploadedFiles = files.images || [] // 🔹 รูปที่อัปโหลดมาใหม่
+
     // 📌 สร้าง `Map` ของ banners เก่า (ใช้ image เป็น key)
     const oldBannersMap = new Map(oldBanners.map((b) => [b.image, b]))
+
+    let newImages = []
 
     // 📌 อัปโหลดรูปใหม่
     for (const file of uploadedFiles) {
@@ -205,28 +213,61 @@ const updateBanners = async (req, res) => {
       newImages.push(newImageName)
     }
 
-    // 📌 ตรวจสอบว่ารูปที่ส่งมาใหม่ เป็นรูปเก่าหรือรูปใหม่
-    let imgIndex = 0
-    banners.forEach((banner) => {
-      if (!oldBannersMap.has(banner.image)) {
-        // 🔹 ถ้า `image` ไม่อยู่ใน `oldBannersMap` แปลว่าเป็นรูปใหม่ → ใช้ชื่อใหม่
-        banner.image = newImages[imgIndex]
-        imgIndex++
-      }
-    })
+    const isActive = JSON.parse(fields.isActive)
 
-    // 📌 หาไฟล์ที่ถูกลบออก
-    const newImageNames = new Set(banners.map((b) => b.image))
-    const deletedImages = oldBanners
-      .map((b) => b.image)
-      .filter((oldImg) => !newImageNames.has(oldImg))
-    
-    // 📌 ลบไฟล์ที่ไม่ได้ใช้งาน
-    for (const img of deletedImages) {
-      await deleteImage(img, dbName, 'banners')
-    }
+    oldBanners.push({ image: newImages[0], isActive })
+
+    // 📌 ตรวจสอบว่ารูปที่ส่งมาใหม่ เป็นรูปเก่าหรือรูปใหม่
+    // let imgIndex = 0
+    // banners.forEach((banner) => {
+    //   if (!oldBannersMap.has(banner.image)) {
+    //     // 🔹 ถ้า `image` ไม่อยู่ใน `oldBannersMap` แปลว่าเป็นรูปใหม่ → ใช้ชื่อใหม่
+    //     banner.image = newImages[imgIndex]
+    //     imgIndex++
+    //   }
+    // })
 
     // 📌 บันทึก banners ลง MongoDB
+    const settingData = await SettingModel.findByIdAndUpdate(
+      id,
+      {
+        $set: { banners: oldBanners },
+      },
+      { new: true, upsert: true }
+    )
+
+    if (!settingData) {
+      return res.status(400).json({
+        status: false,
+        message: 'Add banner failure',
+      })
+    }
+
+    // NOTE: Clear cacheSetting by dbName.
+    redis.del(`setting:${dbName}`)
+
+    return res.json({
+      status: true,
+      message: 'Success',
+      data: settingData,
+    })
+  } catch (e) {
+    return res.status(500).json({
+      status: false,
+      message: e.message,
+    })
+  }
+}
+
+const updateBanners = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { banners } = req.body
+    const dbName = req.headers.siteid
+
+    // 📌 อัพเดท banners ลง MongoDB
+    const connection = await getInstanceDatabase(req)
+    const SettingModel = connection.model('Setting', SettingSchema)
     const settingData = await SettingModel.findByIdAndUpdate(
       id,
       {
@@ -238,7 +279,57 @@ const updateBanners = async (req, res) => {
     if (!settingData) {
       return res.status(400).json({
         status: false,
-        message: 'Setting update failure',
+        message: 'Banners update failure',
+      })
+    }
+
+    // NOTE: Clear cacheSetting by dbName.
+    redis.del(`setting:${dbName}`)
+
+    return res.json({
+      status: true,
+      message: 'Success',
+      data: settingData,
+    })
+  } catch (e) {
+    return res.status(500).json({
+      status: false,
+      message: e.message,
+    })
+  }
+}
+
+const deleteBanner = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { banners, deleteById } = req.body
+    const dbName = req.headers.siteid
+
+    // 📌 ลบ ไฟล์รูป banner ตาม deleteById ที่ส่งมา
+    const foundIndex = banners.findIndex((banner) => banner._id === deleteById)
+    if (foundIndex > -1) {
+      const { image } = banners[foundIndex]
+      await deleteImage(image, dbName, 'banners')
+    }
+
+    // 📌 ลบ banner ตาม deleteById ที่ส่งมาออกจาก array banners
+    const newBanners = banners.filter((banner) => banner._id !== deleteById)
+
+    // 📌 บันทึก banners ลง MongoDB
+    const connection = await getInstanceDatabase(req)
+    const SettingModel = connection.model('Setting', SettingSchema)
+    const settingData = await SettingModel.findByIdAndUpdate(
+      id,
+      {
+        $set: { banners: newBanners },
+      },
+      { new: true, upsert: true }
+    )
+
+    if (!settingData) {
+      return res.status(400).json({
+        status: false,
+        message: 'Deelete banner failure',
       })
     }
 
@@ -263,5 +354,7 @@ export default {
   createNewSettings,
   updateInfo,
   updateRegisterType,
+  addBanner,
   updateBanners,
+  deleteBanner,
 }

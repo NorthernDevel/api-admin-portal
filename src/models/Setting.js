@@ -84,16 +84,16 @@ const SettingSchema = new Schema(
     banners: subSchema(
       {
         image: { type: String },
-        seq: { type: Number },
         createdAt: { type: Date, default: Date.now },
+        isActive: { type: Boolean, default: true },
       },
       true
     ),
     promotions: subSchema(
       {
         image: { type: String },
-        seq: { type: Number },
         createdAt: { type: Date, default: Date.now },
+        isActive: { type: Boolean, default: true },
       },
       true
     ),

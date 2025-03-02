@@ -12,6 +12,8 @@ router
   .route('/register/:id')
   .patch(verifyJWT, settingController.updateRegisterType)
 
-router.route('/banners/:id').put(verifyJWT, settingController.updateBanners)
+router.route('/add-banner/:id').patch(settingController.addBanner)
+router.route('/delete-banner/:id').patch(settingController.deleteBanner)
+router.route('/banners/:id').patch(settingController.updateBanners)
 
 export default router

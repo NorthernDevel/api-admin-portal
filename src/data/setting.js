@@ -33,6 +33,7 @@ const settingDefaultData = (req, objectId) => {
       icon: `https://api.northerndevel.com/images/${objectId.toString()}/icons/`,
       logo: `https://api.northerndevel.com/images/${objectId.toString()}/logos/`,
       popup: `https://api.northerndevel.com/images/${objectId.toString()}/popups/`,
+      promotion: `https://api.northerndevel.com/images/${objectId.toString()}/promotions/`,
     },
     url: 'https://api.northerndevel.com',
   }
